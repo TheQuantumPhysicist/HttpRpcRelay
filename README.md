@@ -1,11 +1,15 @@
 # HttpRpcRelay
 
 ### Introduction
-This software is a simple link + filter between a client and an RPC system. It's prepared to take jsonrpc, but it can be modified, as it's design in a generic way where new protocols can be added by just creating a one class with one method, and change the program options to use it.
+This software is a simple link + filter between a client and an RPC system. It has a server the connects with the client that wants to connect to the RPC system, and a client that connects to the real RPC server.
+```
+Client <==> HttpRpcRelay <==> RpcServer
+```
+It's prepared to take jsonrpc and filter methods by only allowing specified methods, but it can be modified, as it's design in a generic way where new protocols can be added by just creating a one class with one method, and change the program options to use it.
 
 ### What is a use-case for this library?
 
-Consider if you're running a system that requires high security, such as a cryptocurrency wallet. For management purposes, you need to communicate with this wallet, but not with the full potential. Not everyone needs to have permission to withdraw from this wallet. However, the cryptocurrency gives JsonRPC API access to anyone connected to it. Encryption passwords may help, but someone with 24/7 access to the wallet might find the password, or simply wait until the wallet is unlocked for any withdrawal.
+Consider you're running a system that requires high security, such as a cryptocurrency wallet. For management purposes, you need to communicate with this wallet, but not with the full potential. Not everyone needs to have permission to withdraw from this wallet. However, the cryptocurrency gives JsonRPC API access to anyone connected to it. Encryption passwords may help, but someone with 24/7 access to the wallet might find the password, or simply wait until the wallet is unlocked for any withdrawal.
 
 **How do we solve this?**
 
@@ -16,7 +20,7 @@ You place HttpRpcRelay on that server, and you block all communication to the RP
 AsyncJsonRPC depends on two libraries:
 1. libjsoncpp
 2. boost beast, asio and algorithm
-3. spdlog (comes with it as a submodule)
+3. spdlog (comes with with as a submodule)
 4. gtest for testing (also comes as a submodule)
 
 **Conan as a dependency manager**: Conan retrieves boost for you and compiles it automatically for you. It's not necessary if you want to use your system version of boost. Feel free to change the `CMakeLists.txt` file and remove conan.
@@ -42,6 +46,6 @@ Then, in the cloned directory:
 ```sh
 mkdir build && cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
-make -j10
+make -j
 ./bin/HttpRpcRelay --help  # to see the options of the program
 ```
