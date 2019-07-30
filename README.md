@@ -17,7 +17,7 @@ You place HttpRpcRelay on that server, and you block all communication to the RP
 
 
 # Dependencies
-AsyncJsonRPC depends on two libraries:
+HttpRpcRelay depends on:
 1. libjsoncpp
 2. boost beast, asio and algorithm
 3. spdlog (comes with with as a submodule)
