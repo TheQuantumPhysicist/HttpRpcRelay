@@ -15,6 +15,19 @@ make_response_bad_request(const RequestType& req, const boost::string_view why)
     return res;
 }
 
+boost::beast::http::response<boost::beast::http::string_body>
+make_response_server_error(const RequestType& req, const boost::string_view why)
+{
+    boost::beast::http::response<boost::beast::http::string_body> res{
+        boost::beast::http::status::service_unavailable, req.version()};
+    res.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
+    res.set(boost::beast::http::field::content_type, "text/html");
+    res.keep_alive(req.keep_alive());
+    res.body() = std::string(why);
+    res.prepare_payload();
+    return res;
+}
+
 void RelaySession::run() { do_read(); }
 
 void RelaySession::do_read()

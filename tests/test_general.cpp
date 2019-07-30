@@ -76,7 +76,7 @@ TEST(Relay, ServerAndClient)
         }
 
         auto response = responseFuture.get();
-        EXPECT_EQ(response.result_int(), 200);
+        EXPECT_EQ(response.result_int(), (unsigned)boost::beast::http::status::ok);
     }
 
     {
@@ -89,7 +89,7 @@ TEST(Relay, ServerAndClient)
         }
 
         auto response = responseFuture.get();
-        EXPECT_EQ(response.result_int(), 400);
+        EXPECT_EQ(response.result_int(), (unsigned)boost::beast::http::status::bad_request);
     }
 }
 
@@ -149,7 +149,7 @@ TEST(Relay, ServerAndClientWithFilter)
         }
 
         auto response = responseFuture.get();
-        EXPECT_EQ(response.result_int(), 200);
+        EXPECT_EQ(response.result_int(), (unsigned)boost::beast::http::status::ok);
     }
 
     {
@@ -166,7 +166,7 @@ TEST(Relay, ServerAndClientWithFilter)
         }
 
         auto response = responseFuture.get();
-        EXPECT_EQ(response.result_int(), 400);
+        EXPECT_EQ(response.result_int(), (unsigned)boost::beast::http::status::bad_request);
     }
 
     {
@@ -183,7 +183,7 @@ TEST(Relay, ServerAndClientWithFilter)
         }
 
         auto response = responseFuture.get();
-        EXPECT_EQ(response.result_int(), 400);
+        EXPECT_EQ(response.result_int(), (unsigned)boost::beast::http::status::bad_request);
     }
 
     {
@@ -200,7 +200,7 @@ TEST(Relay, ServerAndClientWithFilter)
         }
 
         auto response = responseFuture.get();
-        EXPECT_EQ(response.result_int(), 400);
+        EXPECT_EQ(response.result_int(), (unsigned)boost::beast::http::status::bad_request);
     }
 
     {
@@ -218,7 +218,7 @@ TEST(Relay, ServerAndClientWithFilter)
         }
 
         auto response = responseFuture.get();
-        EXPECT_EQ(response.result_int(), 400);
+        EXPECT_EQ(response.result_int(), (unsigned)boost::beast::http::status::bad_request);
     }
 }
 
@@ -268,7 +268,7 @@ TEST(Relay, RelayClass)
         }
 
         auto response = responseFuture.get();
-        EXPECT_EQ(response.result_int(), 200);
+        EXPECT_EQ(response.result_int(), (unsigned)boost::beast::http::status::ok);
         EXPECT_TRUE(boost::starts_with(response.body(), "Success!"));
         EXPECT_TRUE(boost::ends_with(response.body(), body));
     }
@@ -287,7 +287,61 @@ TEST(Relay, RelayClass)
         }
 
         auto response = responseFuture.get();
-        EXPECT_EQ(response.result_int(), 400);
+        EXPECT_EQ(response.result_int(), (unsigned)boost::beast::http::status::bad_request);
+    }
+}
+
+TEST(Relay, RelayClass_withNoTargetServer_serverError)
+{
+
+    /**
+     * In this test, we do a connection like this:
+     *
+     * Client <==> Relay <==> Server
+     *
+     * We make sure that the server will responsd only with allowed methods
+     */
+
+    // initialize the target server, to which the relay's client will connet
+
+    JsonRPCFilter filter;
+    filter.applyOptions("method1,method2");
+
+    JsonRpcRelay relay(std::move(filter), "127.0.0.1", 3002, "127.0.0.1", 3004, 1);
+
+    {
+        // allowed method, this should be OK
+
+        std::string body = R"({"jsonrpc": "2.0", "method": "method1", "params": [42, 23], "id":
+            1})";
+
+        EasyClient client;
+        client.run(boost::beast::http::verb::get, "127.0.0.1", std::to_string(3002), "/", body, 11);
+
+        auto responseFuture = client.getResponse();
+
+        while (responseFuture.wait_for(std::chrono::milliseconds(10)) != std::future_status::ready) {
+        }
+
+        auto response = responseFuture.get();
+        EXPECT_EQ(response.result_int(), (unsigned)boost::beast::http::status::service_unavailable);
+    }
+    {
+        // not allowed, should fail
+
+        std::string body = R"({"jsonrpc": "2.0", "method": "methodx", "params": [42, 23], "id":
+                1})";
+
+        EasyClient client;
+        client.run(boost::beast::http::verb::get, "127.0.0.1", std::to_string(3002), "/", body, 11);
+
+        auto responseFuture = client.getResponse();
+
+        while (responseFuture.wait_for(std::chrono::milliseconds(10)) != std::future_status::ready) {
+        }
+
+        auto response = responseFuture.get();
+        EXPECT_EQ(response.result_int(), (unsigned)boost::beast::http::status::bad_request);
     }
 }
 
@@ -319,9 +373,6 @@ TEST(Relay, EasyServerAndClient)
     auto responseFuture = client.getResponse();
     auto response       = responseFuture.get();
 
-    EXPECT_EQ(response.result_int(), 200);
+    EXPECT_EQ(response.result_int(), (unsigned)boost::beast::http::status::ok);
     EXPECT_EQ(response.body(), "Success!");
 }
-
-// TODO: what happens if connection to the target server from client in Relay class fails? The response
-// won't be available. There has to be a way to forward errors

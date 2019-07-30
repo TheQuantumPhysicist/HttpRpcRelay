@@ -105,7 +105,11 @@ Relay<Derived>::Relay(std::string ServerBindAddress,
         if (derived().validateRequest(req)) {
             std::shared_ptr<ClientSession> client = std::make_shared<ClientSession>(*ioc_client);
             client->run(clientTargetAddress, std::to_string(clientTargetPort), req);
-            return client->getResponse().get();
+            try {
+                return client->getResponse().get();
+            } catch (std::exception& ex) {
+                return make_response_server_error(req, ex.what());
+            }
         } else {
             return make_response_bad_request(req, "Failed to validate request\n");
         }
