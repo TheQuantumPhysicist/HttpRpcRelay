@@ -14,16 +14,8 @@ namespace net = boost::asio; // from <boost/asio.hpp>
 using RequestType  = boost::beast::http::request<boost::beast::http::string_body>;
 using ResponseType = boost::beast::http::response<boost::beast::http::string_body>;
 
-extern std::function<ResponseType(const RequestType&)> RequestValidatorFunctor;
-
 boost::beast::http::response<boost::beast::http::string_body> make_response_bad_request(const RequestType&       req,
                                                                                         const boost::string_view why);
-
-template <typename Body, typename Allocator, typename Send>
-void handle_request(boost::beast::http::request<Body, boost::beast::http::basic_fields<Allocator>>&& req, Send&& send)
-{
-    return send(std::move(RequestValidatorFunctor(req)));
-}
 
 class RelaySession : public std::enable_shared_from_this<RelaySession>
 {
@@ -59,10 +51,14 @@ class RelaySession : public std::enable_shared_from_this<RelaySession>
     boost::beast::http::request<boost::beast::http::string_body> req_;
     std::shared_ptr<void>                                        res_;
     send_lambda                                                  lambda_;
+    std::function<ResponseType(const RequestType&)>              requestPassingFunctor;
 
 public:
     // Take ownership of the stream
-    RelaySession(net::ip::tcp::socket&& socket) : stream_(std::move(socket)), lambda_(*this) {}
+    RelaySession(net::ip::tcp::socket&& socket, std::function<ResponseType(const RequestType&)> RequestPassingFunctor)
+        : stream_(std::move(socket)), lambda_(*this), requestPassingFunctor(std::move(RequestPassingFunctor))
+    {
+    }
 
     // Start the asynchronous operation
     void run();
@@ -75,12 +71,12 @@ public:
 
     void do_close();
 
-    /**
-     * set the function that validates whether the request should be passed further to the
-     * @brief SetReqValidatorFunctor
-     * @param func is the function object
-     */
-    static void SetReqValidatorFunctor(const std::function<ResponseType(const RequestType&)>& func);
+    template <typename Body, typename Allocator, typename Send>
+    static void handle_request(boost::beast::http::request<Body, boost::beast::http::basic_fields<Allocator>>&& req,
+                               Send&&                                                                           send)
+    {
+        return send(std::move(send.self_.requestPassingFunctor(req)));
+    }
 };
 
 #endif // RELAYSESSION_H

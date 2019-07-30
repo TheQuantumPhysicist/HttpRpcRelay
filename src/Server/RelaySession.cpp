@@ -2,11 +2,11 @@
 
 #include "Logging/DefaultLogger.h"
 
-boost::beast::http::response<boost::beast::http::string_body> make_response_bad_request(const RequestType&       req,
-                                                                                        const boost::string_view why)
+boost::beast::http::response<boost::beast::http::string_body>
+make_response_bad_request(const RequestType& req, const boost::string_view why)
 {
-    boost::beast::http::response<boost::beast::http::string_body> res{boost::beast::http::status::bad_request,
-                                                                      req.version()};
+    boost::beast::http::response<boost::beast::http::string_body> res{
+        boost::beast::http::status::bad_request, req.version()};
     res.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
     res.set(boost::beast::http::field::content_type, "text/html");
     res.keep_alive(req.keep_alive());
@@ -14,11 +14,6 @@ boost::beast::http::response<boost::beast::http::string_body> make_response_bad_
     res.prepare_payload();
     return res;
 }
-
-std::function<ResponseType(const RequestType&)> RequestValidatorFunctor = [](const RequestType& req) -> ResponseType {
-    LogWrite("No validation function set; returning false by default, i.e., all requests are rejected", b_sev::warn);
-    return make_response_bad_request(req, "Handler not set");
-};
 
 void RelaySession::run() { do_read(); }
 
@@ -32,8 +27,11 @@ void RelaySession::do_read()
     stream_.expires_after(std::chrono::seconds(60));
 
     // Read a request
-    boost::beast::http::async_read(stream_, buffer_, req_,
-                                   boost::beast::bind_front_handler(&RelaySession::on_read, shared_from_this()));
+    boost::beast::http::async_read(
+        stream_,
+        buffer_,
+        req_,
+        boost::beast::bind_front_handler(&RelaySession::on_read, shared_from_this()));
 }
 
 void RelaySession::on_read(boost::beast::error_code ec, std::size_t bytes_transferred)
@@ -46,7 +44,7 @@ void RelaySession::on_read(boost::beast::error_code ec, std::size_t bytes_transf
     }
 
     if (ec) {
-        std::cerr << __PRETTY_FUNCTION__ << ": Server: Failed to read: " << ec << std::endl;
+        LogWrite("Failed to read: " + ec.message(), b_sev::err);
         return;
     }
 
@@ -59,7 +57,7 @@ void RelaySession::on_write(bool close, boost::beast::error_code ec, std::size_t
     boost::ignore_unused(bytes_transferred);
 
     if (ec) {
-        std::cerr << __PRETTY_FUNCTION__ << ": Server: Failed to write: " << ec << std::endl;
+        LogWrite("Failed to write: " + ec.message(), b_sev::err);
         return;
     }
 
@@ -83,9 +81,4 @@ void RelaySession::do_close()
     stream_.socket().shutdown(net::ip::tcp::socket::shutdown_send, ec);
 
     // At this point the connection is closed gracefully
-}
-
-void RelaySession::SetReqValidatorFunctor(const std::function<ResponseType(const RequestType&)>& func)
-{
-    RequestValidatorFunctor = func;
 }

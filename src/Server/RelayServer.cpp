@@ -1,7 +1,5 @@
 #include "RelayServer.h"
 
-#include "Logging/DefaultLogger.h"
-
 namespace net = boost::asio; // from <boost/asio.hpp>
 
 RelayServer::RelayServer(boost::asio::io_context& ioc, boost::asio::ip::tcp::endpoint endpoint)
@@ -40,6 +38,11 @@ RelayServer::RelayServer(boost::asio::io_context& ioc, boost::asio::ip::tcp::end
 
 void RelayServer::run() { do_accept(); }
 
+void RelayServer::setRequestPassingFunctor(const std::function<ResponseType(const RequestType&)>& func)
+{
+    requestPassingFunctor = func;
+}
+
 void RelayServer::do_accept()
 {
     // The new connection gets its own strand
@@ -53,7 +56,7 @@ void RelayServer::on_accept(boost::beast::error_code ec, boost::asio::ip::tcp::s
         LogWrite("Failed to accept connection: " + ec.message(), b_sev::err);
     } else {
         // Create the session and run it
-        std::make_shared<RelaySession>(std::move(socket))->run();
+        std::make_shared<RelaySession>(std::move(socket), requestPassingFunctor)->run();
     }
 
     // Accept another connection

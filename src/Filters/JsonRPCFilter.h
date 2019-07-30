@@ -17,6 +17,7 @@ public:
     void addAllowedMethod(const std::string& methodName);
     void removeAllowedMethodIfExists(const std::string& methodName);
     bool allowedMethodExists(const std::string& methodName);
+    void applyOptions(const std::string& options);
 };
 
 #endif // JSONRPCFILTER_H

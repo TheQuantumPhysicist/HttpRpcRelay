@@ -2,6 +2,8 @@
 
 #include "JsonStringQueue.h"
 #include "Logging/DefaultLogger.h"
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/split.hpp>
 #include <iostream>
 #include <jsoncpp/json/json.h>
 
@@ -44,15 +46,18 @@ bool JsonRPCFilter::operator()(const boost::beast::http::request<boost::beast::h
 
         if (it == allowedMethods.cend()) {
             // method is not in the list of allowed methods, return false
-            LogWrite("The following jsonrpc with method is not allowed, but was attempted to be executed: " + body,
-                     b_sev::warn);
+            LogWrite(
+                "The following jsonrpc with method is not allowed, but was attempted to be executed: " +
+                    body,
+                b_sev::warn);
             return false;
         }
 
         return true;
 
     } catch (std::exception& ex) {
-        LogWrite("Error (std::exception) while testing json data: " + std::string(ex.what()), b_sev::warn);
+        LogWrite("Error (std::exception) while testing json data: " + std::string(ex.what()),
+                 b_sev::warn);
         return false;
     } catch (...) {
         LogWrite("Error (unknown exception) while testing json data", b_sev::warn);
@@ -60,11 +65,29 @@ bool JsonRPCFilter::operator()(const boost::beast::http::request<boost::beast::h
     }
 }
 
-void JsonRPCFilter::addAllowedMethod(const std::string& methodName) { allowedMethods.insert(methodName); }
+void JsonRPCFilter::addAllowedMethod(const std::string& methodName)
+{
+    allowedMethods.insert(methodName);
+}
 
-void JsonRPCFilter::removeAllowedMethodIfExists(const std::string& methodName) { allowedMethods.erase(methodName); }
+void JsonRPCFilter::removeAllowedMethodIfExists(const std::string& methodName)
+{
+    allowedMethods.erase(methodName);
+}
 
 bool JsonRPCFilter::allowedMethodExists(const std::string& methodName)
 {
     return allowedMethods.find(methodName) != allowedMethods.cend();
+}
+
+void JsonRPCFilter::applyOptions(const std::string& options)
+{
+    // options here is a comma separated list of methods to be allowed
+    std::vector<std::string> methods;
+    boost::split(methods, options, boost::is_any_of(","), boost::token_compress_on);
+    for (std::string& m : methods) {
+        boost::trim(m);
+    }
+    allowedMethods.insert(std::make_move_iterator(methods.begin()),
+                          std::make_move_iterator(methods.end()));
 }

@@ -28,8 +28,12 @@ add_subdirectory(3rdparty)
 add_library(http_rpc_relay_lib
     src/Server/RelayServer.cpp
     src/Server/RelaySession.cpp
+    src/Server/EasyServer.cpp
     src/Client/ClientSession.cpp
+    src/Client/EasyClient.cpp
     src/Filters/JsonRPCFilter.cpp
+    src/Relay/Relay.cpp
+    src/Relay/JsonRpcRelay.cpp
     )
 
 add_executable(${PROJECT_NAME} "main.cpp")
@@ -37,6 +41,8 @@ add_executable(${PROJECT_NAME} "main.cpp")
 target_link_libraries(${PROJECT_NAME}
     http_rpc_relay_lib
     Threads::Threads
+    -ljsoncpp
+    ${CONAN_LIBS}
     )
 
 include_directories(${SPDLOG_PATH}/include)
