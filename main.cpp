@@ -43,21 +43,42 @@ int main(int argc, char* argv[])
     params::store(params::parse_command_line(argc, argv, desc), vm);
     params::notify(vm);
 
-    std::string server_bind_address = vm["bind_address"].as<std::string>();
-    uint16_t    server_bind_port    = vm["bind_port"].as<uint16_t>();
-    std::string target_bind_address = vm["target_address"].as<std::string>();
-    uint16_t    target_bind_port    = vm["target_port"].as<uint16_t>();
-    uint32_t    thread_count        = std::thread::hardware_concurrency();
-    if (vm.find("threads") != vm.cend()) {
-        thread_count = vm["threads"].as<uint32_t>();
+    if (vm.count("help")) {
+        std::cout << "Basic Command Line Parameter App" << std::endl << desc << std::endl;
+        return EXIT_SUCCESS;
     }
-    if (vm.find("filter_kind") != vm.cend()) {
-        // currently there's only jsonrpc filter, so this is no-op
+
+    std::string server_bind_address;
+    uint16_t    server_bind_port;
+    std::string target_bind_address;
+    uint16_t    target_bind_port;
+    uint32_t    thread_count;
+    std::string filter_options;
+
+    try {
+        server_bind_address = vm["bind_address"].as<std::string>();
+        server_bind_port    = vm["bind_port"].as<uint16_t>();
+        target_bind_address = vm["target_address"].as<std::string>();
+        target_bind_port    = vm["target_port"].as<uint16_t>();
+        thread_count        = std::thread::hardware_concurrency();
+
+        if (vm.find("threads") != vm.cend()) {
+            thread_count = vm["threads"].as<uint32_t>();
+        }
+        if (vm.find("filter_kind") != vm.cend()) {
+            // currently there's only jsonrpc filter, so this is no-op
+        }
+        if (vm.find("filter_options") == vm.cend()) {
+            throw std::runtime_error("The argument filter_options should be specified");
+        }
+        filter_options = vm["filter_options"].as<std::string>();
+    } catch (std::bad_cast& ex) {
+        std::cerr << std::endl
+                  << "Please include all required options. Use the command line `--help` to see them. "
+                  << std::endl
+                  << std::endl;
+        return EXIT_FAILURE;
     }
-    if (vm.find("filter_options") == vm.cend()) {
-        throw std::runtime_error("The argument filter_options should be specified");
-    }
-    std::string filter_options = vm["filter_options"].as<std::string>();
 
     /////////// start the server
 
