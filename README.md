@@ -20,7 +20,7 @@ You place HttpRpcRelay on that server, and you block all communication to the RP
 HttpRpcRelay depends on:
 1. libjsoncpp
 2. boost beast, asio and algorithm
-3. spdlog (comes with with as a submodule)
+3. spdlog (comes with as a submodule)
 4. gtest for testing (also comes as a submodule)
 
 **Conan as a dependency manager**: Conan retrieves boost for you and compiles it automatically for you. It's not necessary if you want to use your system version of boost. Feel free to change the `CMakeLists.txt` file and remove conan.
